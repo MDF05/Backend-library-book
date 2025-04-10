@@ -1,45 +1,82 @@
 import { BookRepository } from "../infrastructure/repositories/book.repository";
 import { MemberRepository } from "../infrastructure/repositories/member.repository";
+import { Book } from "../domain/book/book.entity";
+import { Member } from "../domain/member/member.entity";
 
 export class BorrowService {
   constructor(
-    private bookRepo: BookRepository,
-    private memberRepo: MemberRepository
+    private bookRepository: BookRepository,
+    private memberRepository: MemberRepository
   ) {}
 
   async borrow(memberId: string, bookCode: string) {
-    const book = await this.bookRepo.findByCode(bookCode);
-    const member = await this.memberRepo.findById(memberId);
+    const member = await this.memberRepository.findById(memberId);
+    const book = await this.bookRepository.getByCode(bookCode);
 
-    if (!book || !book.isAvailable())
-      return { success: false, message: "Book not available" };
-    if (!member) return { success: false, message: "Member not found" };
+    if (!member || !book) {
+      return { success: false, message: "Member or Book not found" };
+    }
 
-    const err = member.borrowBook(bookCode);
-    if (err) return { success: false, message: err };
+    if (!member.canBorrow()) {
+      return {
+        success: false,
+        message: "Member has already borrowed the maximum number of books",
+      };
+    }
 
-    book.borrow();
-    await this.memberRepo.save(member);
-    await this.bookRepo.save(book);
+    if (book.stock <= 0) {
+      return { success: false, message: "No stock available for this book" };
+    }
+
+    // Borrow the book
+    member.borrowedBooks.push({
+      code: book.code,
+      borrowedAt: new Date(),
+    });
+
+    book.stock -= 1;
+
+    await this.bookRepository.updateStock(book.code, book.stock);
+    await this.memberRepository.save(member);
 
     return { success: true, message: "Book borrowed successfully" };
   }
 
   async return(memberId: string, bookCode: string) {
-    const book = await this.bookRepo.findByCode(bookCode);
-    const member = await this.memberRepo.findById(memberId);
+    const member = await this.memberRepository.findById(memberId);
+    const book = await this.bookRepository.getByCode(bookCode);
 
-    if (!book || !member)
-      return { success: false, message: "Book or member not found" };
+    if (!member || !book) {
+      return { success: false, message: "Member or Book not found" };
+    }
 
-    const result = member.returnBook(bookCode);
-    if (!result)
-      return { success: false, message: "Book not borrowed by member" };
+    const borrowedBookIndex = member.borrowedBooks.findIndex(
+      (b) => b.code === bookCode
+    );
+    if (borrowedBookIndex === -1) {
+      return {
+        success: false,
+        message: "This book was not borrowed by the member",
+      };
+    }
 
-    book.return();
-    await this.memberRepo.save(member);
-    await this.bookRepo.save(book);
+    member.borrowedBooks.splice(borrowedBookIndex, 1);
 
-    return { success: true, message: result.message };
+    // Update book stock
+    book.stock += 1;
+    await this.bookRepository.updateStock(book.code, book.stock);
+
+    // Add penalty if more than 7 days
+    const borrowedAt = member.borrowedBooks[borrowedBookIndex].borrowedAt;
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - borrowedAt.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
+
+    if (diffDays > 7) {
+      return { success: false, message: "Member is penalized for late return" };
+    }
+
+    await this.memberRepository.save(member);
+    return { success: true, message: "Book returned successfully" };
   }
 }

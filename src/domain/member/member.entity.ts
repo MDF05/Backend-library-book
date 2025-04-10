@@ -1,51 +1,51 @@
+// src/domain/member/member.entity.ts
+
 export class BorrowedBook {
   constructor(public code: string, public borrowedAt: Date) {}
 }
 
+const MAX_BORROW_DAYS = 7;
+const PENALTY_DAYS = 3;
+
 export class Member {
+  borrowedBooks: BorrowedBook[] = [];
+  penaltyUntil: Date | null = null;
+
   constructor(
     public id: string,
     public name: string,
-    public borrowedBooks: BorrowedBook[] = [],
-    public penaltyUntil: Date | null = null
-  ) {}
+    borrowedBooks: { code: string; borrowedAt: Date }[] = []
+  ) {
+    this.borrowedBooks = borrowedBooks.map(
+      (book) => new BorrowedBook(book.code, book.borrowedAt)
+    );
+  }
+
+  get penalized(): boolean {
+    if (!this.penaltyUntil) return false;
+    return this.penaltyUntil.getTime() > Date.now();
+  }
 
   canBorrow(): boolean {
-    const now = new Date();
-    return (
-      (!this.penaltyUntil || now >= this.penaltyUntil) &&
-      this.borrowedBooks.length < 2
-    );
+    return this.borrowedBooks.length < 2 && !this.penalized;
   }
 
-  borrowBook(bookCode: string): string | null {
-    if (!this.canBorrow())
-      return "Cannot borrow: either penalized or reached limit";
-    if (this.borrowedBooks.some((b) => b.code === bookCode))
-      return "Already borrowed this book";
+  returnBook(bookCode: string, returnedAt: Date = new Date()): boolean {
+    const borrowedBook = this.borrowedBooks.find((b) => b.code === bookCode);
+    if (!borrowedBook) return false;
 
-    this.borrowedBooks.push(new BorrowedBook(bookCode, new Date()));
-    return null;
-  }
-
-  returnBook(bookCode: string): { message: string; penalized: boolean } | null {
-    const borrowed = this.borrowedBooks.find((b) => b.code === bookCode);
-    if (!borrowed) return null;
-
-    const now = new Date();
-    const diffDays = Math.floor(
-      (now.getTime() - borrowed.borrowedAt.getTime()) / (1000 * 60 * 60 * 24)
+    const borrowDate = borrowedBook.borrowedAt;
+    const diffInDays = Math.floor(
+      (returnedAt.getTime() - borrowDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    this.borrowedBooks = this.borrowedBooks.filter((b) => b.code !== bookCode);
-
-    if (diffDays > 7) {
-      const penalty = new Date();
-      penalty.setDate(penalty.getDate() + 3);
-      this.penaltyUntil = penalty;
-      return { message: "Returned late, penalized", penalized: true };
+    if (diffInDays > MAX_BORROW_DAYS) {
+      this.penaltyUntil = new Date(
+        returnedAt.getTime() + PENALTY_DAYS * 24 * 60 * 60 * 1000
+      );
     }
 
-    return { message: "Returned successfully", penalized: false };
+    this.borrowedBooks = this.borrowedBooks.filter((b) => b.code !== bookCode);
+    return true;
   }
 }

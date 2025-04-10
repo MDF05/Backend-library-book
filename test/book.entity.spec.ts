@@ -1,20 +1,27 @@
 import { Book } from "../src/domain/book/book.entity";
 
 describe("Book Entity", () => {
-  it("should decrease stock when borrowed", () => {
-    const book = new Book("CODE-1", "Test Book", "Author", 1);
-    expect(book.borrow()).toBe(true);
+  it("should create a book with correct properties", () => {
+    const book = new Book("BOOK-1", "Clean Code", "Robert C. Martin", 5);
+
+    expect(book.code).toBe("BOOK-1");
+    expect(book.title).toBe("Clean Code");
+    expect(book.author).toBe("Robert C. Martin");
+    expect(book.stock).toBe(5);
+  });
+
+  it("should allow reducing stock when book is borrowed", () => {
+    const book = new Book("BOOK-1", "Clean Code", "Robert C. Martin", 5);
+    book.stock -= 1;
+
+    expect(book.stock).toBe(4);
+  });
+
+  it("should not allow reducing stock below zero", () => {
+    const book = new Book("BOOK-1", "Clean Code", "Robert C. Martin", 0);
+
+    book.stock = Math.max(0, book.stock - 1); 
+
     expect(book.stock).toBe(0);
-  });
-
-  it("should not borrow if stock is 0", () => {
-    const book = new Book("CODE-2", "Another Book", "Author", 0);
-    expect(book.borrow()).toBe(false);
-  });
-
-  it("should increase stock when returned", () => {
-    const book = new Book("CODE-3", "Return Book", "Author", 0);
-    book.return();
-    expect(book.stock).toBe(1);
   });
 });

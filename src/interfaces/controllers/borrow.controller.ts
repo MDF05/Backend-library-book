@@ -19,7 +19,6 @@ export const borrowBook = async (req: Request, res: Response) => {
   }
 };
 
-
 export const returnBook = async (req: Request, res: Response) => {
   const { memberId, bookCode } = req.body;
 

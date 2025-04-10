@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { getAllBooks } from "../controllers/book.controller";
+import { getAllMembers } from "../controllers/member.controller";
 
 const router = Router();
 
-router.get("/", getAllBooks);
+router.get("/", getAllMembers);
 
 export default router;

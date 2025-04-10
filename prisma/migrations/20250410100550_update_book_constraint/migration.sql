@@ -1,12 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the `book` table. If the table is not empty, all the data it contains will be lost.
-
-*/
--- DropTable
-DROP TABLE "book";
-
 -- CreateTable
 CREATE TABLE "Book" (
     "code" TEXT NOT NULL,
@@ -32,6 +23,7 @@ CREATE TABLE "Borrow" (
     "memberId" TEXT NOT NULL,
     "bookCode" TEXT NOT NULL,
     "borrowedAt" TIMESTAMP(3) NOT NULL,
+    "returnedAt" TIMESTAMP(3),
 
     CONSTRAINT "Borrow_pkey" PRIMARY KEY ("id")
 );

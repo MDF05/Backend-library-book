@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/main.ts",
-    "test" : "jest"
+    "test": "jest"
   },
   "keywords": [],
   "author": "",

@@ -5,11 +5,11 @@ const memberRepo = new MemberRepository();
 
 export const getAllMembers = async (req: Request, res: Response) => {
   try {
-    const members = await memberRepo.findAll(); // You'll need to implement this in your repo
+    const members = await memberRepo.findAll();
     const memberData = members.map((member) => ({
       id: member.id,
       name: member.name,
-      borrowedBooks: member.borrowedBooks.length,
+      borrowedBooks: member.borrowedBooks.length, // Menghitung jumlah buku yang dipinjam
     }));
     res.status(200).json(memberData);
   } catch (error) {
